@@ -1,0 +1,57 @@
+# What enrolling a namespace actually looks like, and the two annotations a
+# workload owner cares about.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: team-a
+  labels:
+    # Without this label, no policy above will look at anything in here.
+    fallow.dev/reclaim: enabled
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: checkout-api
+  namespace: team-a
+  annotations:
+    # Written by whatever already knows about traffic -- an ingress metrics
+    # scraper, an Envoy access-log pipeline, a Prometheus recording rule.
+    # A workload with no such annotation is never considered idle, so
+    # enrolling a namespace cannot reclaim workloads nobody has instrumented.
+    fallow.dev/last-activity: "2026-03-01T09:14:22Z"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: checkout-api
+  template:
+    metadata:
+      labels:
+        app: checkout-api
+    spec:
+      containers:
+        - name: checkout-api
+          image: registry.example.com/checkout-api:v1.4.2
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: billing-worker
+  namespace: team-a
+  annotations:
+    # The owner's override. Fallow skips this workload entirely, whatever
+    # any policy says and however idle it looks.
+    fallow.dev/exclude: "true"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: billing-worker
+  template:
+    metadata:
+      labels:
+        app: billing-worker
+    spec:
+      containers:
+        - name: billing-worker
+          image: registry.example.com/billing-worker:v0.9.1

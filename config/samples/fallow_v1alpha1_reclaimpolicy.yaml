@@ -1,0 +1,42 @@
+# The recommended starting point: a policy that watches, reports, and changes
+# nothing. Run it for a week, read `kubectl get reclaimpolicy dev-reclaim -o
+# yaml` to see which workloads it would have touched and why, then set
+# dryRun: false once the list looks right.
+apiVersion: fallow.dev/v1alpha1
+kind: ReclaimPolicy
+metadata:
+  name: dev-reclaim
+spec:
+  # Enrollment is opt-in. Only namespaces carrying this label are considered,
+  # so adding Fallow to a cluster does nothing until a namespace asks for it.
+  namespaceSelector:
+    matchLabels:
+      fallow.dev/reclaim: enabled
+
+  # Nothing happens until a workload has looked idle for this long, measured
+  # from the moment Fallow first saw it quiet.
+  idleAfter: 72h
+
+  stages:
+    notify:
+      message: >-
+        This workload has been idle for three days. Fallow will scale it to
+        zero in 24h and delete it 7 days after that. Annotate it with
+        fallow.dev/exclude=true to opt out.
+    scaleToZero:
+      after: 24h
+    delete:
+      after: 168h
+      # The default. Deleting without an archive is permanent, so it has to
+      # be asked for explicitly.
+      archive: true
+
+  # Report only. Every decision shows up in events and status; no workload is
+  # modified.
+  dryRun: true
+
+  # Namespaces this policy must never touch, whatever the selector matches.
+  # kube-* namespaces are protected unconditionally and do not need listing.
+  protectedNamespaces:
+    - flux-system
+    - monitoring

@@ -1,0 +1,31 @@
+# Leader election is namespace-scoped: only one replica should be escalating
+# workloads at a time, and the lease that decides which one lives alongside
+# the controller rather than in the cluster scope.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: fallow-leader-election-role
+  namespace: fallow-system
+  labels:
+    app.kubernetes.io/name: fallow
+    app.kubernetes.io/component: controller
+rules:
+  - apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - create
+      - patch

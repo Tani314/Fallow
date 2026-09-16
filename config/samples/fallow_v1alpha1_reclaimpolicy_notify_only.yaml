@@ -1,0 +1,20 @@
+# A policy with no teeth: it flags idle workloads and stops there.
+#
+# Omitting a stage truncates the ladder at that point, so this policy can
+# never scale or delete anything no matter how long a workload sits idle.
+# Useful as a permanent arrangement for teams who want the visibility but
+# want to do the reclaiming themselves.
+apiVersion: fallow.dev/v1alpha1
+kind: ReclaimPolicy
+metadata:
+  name: notify-only
+spec:
+  namespaceSelector:
+    matchLabels:
+      fallow.dev/reclaim: notify
+  idleAfter: 168h
+  stages:
+    notify:
+      message: >-
+        This workload has been idle for a week. Nothing will happen
+        automatically, but it may be worth deleting.

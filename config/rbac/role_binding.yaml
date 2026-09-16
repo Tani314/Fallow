@@ -1,0 +1,20 @@
+# Fallow reads namespaces and workloads across the whole cluster, so its main
+# role is necessarily cluster-scoped. What keeps that survivable is not RBAC
+# but the controller itself: enrollment is opt-in per namespace, kube-*
+# namespaces are refused unconditionally, and the escalation ladder is
+# configured per policy.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: fallow-manager-rolebinding
+  labels:
+    app.kubernetes.io/name: fallow
+    app.kubernetes.io/component: controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: fallow-manager-role
+subjects:
+  - kind: ServiceAccount
+    name: fallow-controller-manager
+    namespace: fallow-system

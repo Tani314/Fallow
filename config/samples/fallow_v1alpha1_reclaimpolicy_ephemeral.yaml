@@ -1,0 +1,30 @@
+# An aggressive policy for genuinely disposable environments: per-PR preview
+# stacks, ephemeral test namespaces, review apps.
+#
+# Note what makes this safe to be aggressive about -- workloadSelector limits
+# it to things explicitly labelled ephemeral, so a long-lived workload that
+# happens to share the namespace is never in scope.
+apiVersion: fallow.dev/v1alpha1
+kind: ReclaimPolicy
+metadata:
+  name: preview-environments
+spec:
+  namespaceSelector:
+    matchLabels:
+      fallow.dev/reclaim: enabled
+      environment: preview
+  workloadSelector:
+    matchLabels:
+      lifecycle: ephemeral
+  idleAfter: 4h
+  stages:
+    notify: {}
+    scaleToZero:
+      after: 2h
+    delete:
+      after: 24h
+      # Preview stacks are rebuilt from CI on demand, so there is nothing
+      # worth keeping. This is the one case where turning archiving off is
+      # the honest choice rather than a shortcut.
+      archive: false
+  dryRun: false
